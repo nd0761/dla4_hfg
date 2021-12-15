@@ -9,20 +9,16 @@ from utils.config import TaskConfig
 
 def load_dataset():
     dataset_path = TaskConfig().work_dir_dataset
-    file_path = os.path.join(TaskConfig().work_dir_dataset, TaskConfig().dataset_name)
 
     filename = "LJSpeech-1.1.tar.bz2"
     if not os.path.exists(dataset_path):
         os.makedirs(dataset_path)
-    if os.path.exists(file_path):
+    if os.path.exists(TaskConfig().dataset_full_name):
         return  # dataset already exists
     if not os.path.isfile(os.path.join(".", filename)):  # if archive not exists
         filename = wget.download(TaskConfig().dataset_url)
 
     temp = tarfile.open(filename)
-    temp.extractall(file_path)
+    temp.extractall(dataset_path)
     temp.close()
 
-
-if __name__ == "__main__":
-    load()

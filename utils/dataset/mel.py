@@ -82,7 +82,7 @@ def mel_spectrogram(y,
 
 
 def get_dataset_filelist():
-    input_wavs_dir = os.path.join(TaskConfig().work_dir_dataset, TaskConfig().dataset_full_name)
+    input_wavs_dir = os.path.join(TaskConfig().dataset_full_name, "wavs")
     with open(TaskConfig().input_training_file, 'r', encoding='utf-8') as fi:
         training_files = [os.path.join(input_wavs_dir, x.split('|')[0] + '.wav')
                           for x in fi.read().split('\n') if len(x) > 0]

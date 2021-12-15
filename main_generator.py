@@ -64,15 +64,10 @@ def main_worker():
     )
 
     print("initialize scheduler")
-    scheduler = ExponentialLR(opt_gen, gamma=config.lr_decay, last_epoch=config.num_epochs)
+    scheduler = ExponentialLR(opt_gen, gamma=config.lr_decay, last_epoch=-1)
     wandb_session = None
     if config.wandb:
         wandb_session = initialize_wandb(config)
-
-    vocoder = None
-    if config.log_audio:
-        print("initialize vocoder")
-        vocoder = Vocoder().to(config.device).eval()
 
     print("start train procedure")
 
@@ -82,8 +77,7 @@ def main_worker():
         train_loader, val_loader,
         scheduler=scheduler,
         save_model=False,
-        config=config, wandb_session=wandb_session,
-        vocoder=vocoder
+        config=config, wandb_session=wandb_session
     )
 
 

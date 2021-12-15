@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from utils.config import TaskConfig
-from utils.model.generator.blocks import MRF
+from utils.model.generator.blocks import MRF, get_padding
 
 
 # source shw5
@@ -11,7 +11,7 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
 
         self.in_net = nn.Sequential(
-            nn.Conv1d(TaskConfig().enc_in_channels, TaskConfig().hu, kernel_size=7, stride=1, padding=7 // 3)
+            nn.Conv1d(TaskConfig().enc_in_channels, TaskConfig().hu, kernel_size=7, stride=1, padding=get_padding(7, 1))
         )
 
         self.net = []
@@ -28,7 +28,7 @@ class Generator(nn.Module):
                     out_channels=next_channels,
                     stride=kus // 2,
                     kernel_size=kus,
-                    padding=kus // 2  # ToDo
+                    padding=kus // 4  # ToDo
                 ),
                 MRF(next_channels, TaskConfig().kr, TaskConfig().Dr)
             ]
@@ -37,7 +37,7 @@ class Generator(nn.Module):
         self.out = nn.Sequential(
             *[
                 nn.LeakyReLU(TaskConfig().enc_leaky_relu),
-                nn.Conv1d(next_channels, 1, kernel_size=7, stride=1, padding=7 // 2),
+                nn.Conv1d(next_channels, 1, kernel_size=7, stride=1, padding=get_padding(7, 1)),
                 nn.Tanh()
             ]
         )

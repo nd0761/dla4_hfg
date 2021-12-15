@@ -35,6 +35,7 @@ class TaskConfig:
     wandb_project: str = "dla4_hfg"  # wandb project name
     log_result_every_iteration: int = 5  # set -1 if you don't want to log any results
     log_loss_every_iteration: int = 5  # set -1 if you don't want to log any loss information
+    log_audio: bool = True
 
     save_models_every_epoch: int = 3  # model will be saved every save_models_every_epoch'th epoch
 

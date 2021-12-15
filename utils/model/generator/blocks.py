@@ -30,7 +30,7 @@ class ResBlock(nn.Module):
     def forward(self, x):
         for res_block in self.net:
             x_temp = res_block(x)
-            x += x_temp.clone()
+            x = x + x_temp.clone()
         return x
 
 
@@ -53,11 +53,5 @@ class MRF(nn.Module):
             if x_res is None:
                 x_res = x_temp
             else:
-                x_res += x_temp
+                x_res = x_res + x_temp
         return x_res // self.len_kr
-
-
-
-
-
-
