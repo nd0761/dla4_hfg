@@ -8,6 +8,9 @@ class TaskConfig:
     work_dir_dataset: str = "./datasets"  # dataset directory
     model_path: str = "./models"  # path to save future models
     results_location: str = "./results"
+    dataset_name: str = "LJSpeech"
+
+    dataset_url: str = "https://data.keithito.com/data/speech/LJSpeech-1.1.tar.bz2"
 
     use_scheduler: bool = True
     no_val: bool = False  # set True if you don't want to run validation during training

@@ -10,3 +10,4 @@ dataclasses
 typing
 wandb
 regex
+wget
