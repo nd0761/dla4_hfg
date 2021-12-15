@@ -8,6 +8,10 @@ from librosa.util import normalize
 from scipy.io.wavfile import read
 from librosa.filters import mel as librosa_mel_fn
 
+from utils.config import TaskConfig
+
+from utils.dataset.load_dataset import load_dataset
+
 # source -  https://github.com/jik876/hifi-gan/blob/master/meldataset.py
 MAX_WAV_VALUE = 32768.0
 
@@ -47,8 +51,11 @@ mel_basis = {}
 hann_window = {}
 
 
-def mel_spectrogram(y, n_fft=config.n_fft, num_mels=config.num_mels, sampling_rate=config.sr, hop_size=config.hop_size,
-                    win_size=config.win_size, fmin=config.fmin, fmax=config.fmax, center=False):
+def mel_spectrogram(y,
+                    n_fft=TaskConfig().n_fft, num_mels=TaskConfig().num_mels,
+                    sampling_rate=TaskConfig().sampling_rate, hop_size=TaskConfig().hop_size,
+                    win_size=TaskConfig().win_size,
+                    fmin=TaskConfig().fmin, fmax=TaskConfig().fmax, center=False):
     if torch.min(y) < -1.:
         print('min value is ', torch.min(y))
     if torch.max(y) > 1.:
@@ -75,33 +82,44 @@ def mel_spectrogram(y, n_fft=config.n_fft, num_mels=config.num_mels, sampling_ra
 
 
 def get_dataset_filelist():
-    with open(config.input_training_file, 'r', encoding='utf-8') as fi:
-        training_files = [os.path.join(config.input_wavs_dir, x.split('|')[0] + '.wav')
+    input_wavs_dir = os.path.join(TaskConfig().work_dir_dataset, TaskConfig().dataset_full_name)
+    with open(TaskConfig().input_training_file, 'r', encoding='utf-8') as fi:
+        training_files = [os.path.join(input_wavs_dir, x.split('|')[0] + '.wav')
                           for x in fi.read().split('\n') if len(x) > 0]
 
-    with open(config.input_validation_file, 'r', encoding='utf-8') as fi:
-        validation_files = [os.path.join(config.input_wavs_dir, x.split('|')[0] + '.wav')
+    with open(TaskConfig().input_validation_file, 'r', encoding='utf-8') as fi:
+        validation_files = [os.path.join(input_wavs_dir, x.split('|')[0] + '.wav')
                             for x in fi.read().split('\n') if len(x) > 0]
     return training_files, validation_files
 
 
 class MelDataset(torch.utils.data.Dataset):
-    def __init__(self, training_files, split=True, shuffle=True, n_cache_reuse=1,
-                 device=None, fine_tuning=False, base_mels_path=None):
+    def __init__(self, training_files,
+                 segment_size=TaskConfig().segment_size,
+                 n_fft=TaskConfig().n_fft, num_mels=TaskConfig().num_mels,
+                 hop_size=TaskConfig().hop_size, win_size=TaskConfig().win_size,
+                 sampling_rate=TaskConfig().sampling_rate,
+                 fmin=TaskConfig().fmin, fmax=TaskConfig().fmax,
+                 split=True, shuffle=True,
+                 n_cache_reuse=0,
+                 device=TaskConfig().device,
+                 fmax_loss=TaskConfig().fmax_loss,
+                 fine_tuning=False, base_mels_path=None):
+
         self.audio_files = training_files
         random.seed(1234)
         if shuffle:
             random.shuffle(self.audio_files)
-        self.segment_size = config.segment_size
-        self.sampling_rate = config.sr
+        self.segment_size = segment_size
+        self.sampling_rate = sampling_rate
         self.split = split
-        self.n_fft = config.n_fft
-        self.num_mels = config.num_mels
-        self.hop_size = config.hop_size
-        self.win_size = config.win_size
-        self.fmin = config.fmin
-        self.fmax = config.fmax
-        self.fmax_loss = config.fmax_for_loss
+        self.n_fft = n_fft
+        self.num_mels = num_mels
+        self.hop_size = hop_size
+        self.win_size = win_size
+        self.fmin = fmin
+        self.fmax = fmax
+        self.fmax_loss = fmax_loss
         self.cached_wav = None
         self.n_cache_reuse = n_cache_reuse
         self._cache_ref_count = 0
@@ -109,7 +127,7 @@ class MelDataset(torch.utils.data.Dataset):
         self.fine_tuning = fine_tuning
         self.base_mels_path = base_mels_path
 
-        self.load()
+        load_dataset()
 
     def __getitem__(self, index):
         filename = self.audio_files[index]

@@ -1,14 +1,21 @@
 import torch
 import dataclasses
+import os
 
 
 @dataclasses.dataclass
 class TaskConfig:
     work_dir: str = "./dla4_hfg"  # pix2pix2 directory
-    work_dir_dataset: str = "./datasets"  # dataset directory
+    work_dir_dataset: str = "./datasets/LJSpeech"  # dataset directory
     model_path: str = "./models"  # path to save future models
     results_location: str = "./results"
-    dataset_name: str = "LJSpeech"
+    dataset_full_name: str = os.path.join(work_dir_dataset, "LJSpeech-1.1")
+    input_wavs_dir: str = os.path.join(dataset_full_name, "wavs")
+
+    train_share: float = 0.7
+
+    input_training_file: str = os.path.join(work_dir, "utils", "dataset", "overfit_batch.txt")
+    input_validation_file: str = os.path.join(work_dir, "utils", "dataset", "overfit_batch.txt")
 
     dataset_url: str = "https://data.keithito.com/data/speech/LJSpeech-1.1.tar.bz2"
 
@@ -17,8 +24,8 @@ class TaskConfig:
 
     torch_seed: int = 42  # set torch seed for reproduction
     num_epochs: int = 200
-    batch_size: int = 1
-    batch_limit: int = -1  # set number of batches that will be used in training
+    batch_size: int = 4
+    batch_limit: int = 1  # set number of batches that will be used in training
 
     device: torch.device = torch.device(
         'cuda:0' if torch.cuda.is_available() else 'cpu')  # set device
@@ -31,9 +38,27 @@ class TaskConfig:
 
     save_models_every_epoch: int = 3  # model will be saved every save_models_every_epoch'th epoch
 
-    betas: tuple = (0.5, 0.999)  # Adam betas
+    lr_decay: float = 0.7
+
+    betas: tuple = (0.8, 0.99)  # Adam betas
     learning_rate: float = 2e-4
     weight_decay: float = 1e-5
+
+    eps: float = 1e-9
+
+    # Dataset config
+
+    segment_size: int = 8192
+    n_fft: int = 1024
+    num_mels: int = 80
+    hop_size: int = 256
+    win_size: int = 1024
+    fmin: int = 0
+    fmax: int = 8000
+    fmax_loss: int = None
+    input_mels_dir: str = 'ft_dataset'
+    output_dir: str = 'result'
+    sampling_rate: int = 22050
 
     # HiFiGun config
 

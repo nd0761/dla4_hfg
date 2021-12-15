@@ -6,10 +6,16 @@ from utils.config import TaskConfig, TransformerConfig
 
 from utils.trainer import train
 from utils.model.generator import Generator
-from utils.dataset import FacadesDataset
+from utils.dataset import MelDataset, load_wav, dynamic_range_compression, dynamic_range_decompression, \
+    dynamic_range_compression_torch, dynamic_range_decompression_torch, spectral_normalize_torch, \
+    spectral_de_normalize_torch, mel_spectrogram, get_dataset_filelist
+
+from utils.vcoder import Vocoder
+
 
 from torch.utils.data import DataLoader
 from torch.optim import AdamW
+from torch.optim.lr_scheduler import ExponentialLR
 
 if TaskConfig().wandb:
     from utils.logger.wandb_log_utils import initialize_wandb
@@ -21,16 +27,14 @@ def main_worker():
     print(config.device)
     torch.manual_seed(config.torch_seed)
 
+    print("initialize filelist")
+    training_filelist, validation_filelist = get_dataset_filelist()
+
     print("initialize dataset")
-    train_dataset = FacadesDataset(
-        os.path.join(config.work_dir_dataset, config.dataset_name),
-        None, None,
-        split="train", flip=True, flip_prob=TransformerConfig().flip_prob)
-    val_dataset = FacadesDataset(
-        os.path.join(config.work_dir_dataset, config.dataset_name),
-        None, None,
-        split="val"
-    )
+
+    train_dataset = MelDataset(training_filelist)
+
+    val_dataset = MelDataset(validation_filelist)
 
     print("initialize dataloader")
 
@@ -56,24 +60,30 @@ def main_worker():
         model_generator.parameters(),
         lr=config.learning_rate,
         weight_decay=config.weight_decay,
-        betas=(0.9, 0.98), eps=1e-9
+        betas=TaskConfig().betas, eps=TaskConfig().eps
     )
 
     print("initialize scheduler")
-    scheduler = None
+    scheduler = ExponentialLR(opt_gen, gamma=config.lr_decay, last_epoch=config.num_epochs)
     wandb_session = None
     if config.wandb:
         wandb_session = initialize_wandb(config)
 
+    vocoder = None
+    if config.log_audio:
+        print("initialize vocoder")
+        vocoder = Vocoder().to(config.device).eval()
+
     print("start train procedure")
 
-    train_baseline(
+    train(
         model_generator,
         opt_gen,
         train_loader, val_loader,
         scheduler=scheduler,
         save_model=False,
-        config=config, wandb_session=wandb_session
+        config=config, wandb_session=wandb_session,
+        vocoder=vocoder
     )
 
 

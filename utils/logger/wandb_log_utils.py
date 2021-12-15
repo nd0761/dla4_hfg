@@ -19,7 +19,7 @@ def log_audio(wandb_session, wav, tmp_path, wandb_result, delete_res=True):
         os.remove(tmp_path)
 
 
-def log_wandb_audio(batch, config, wandb_session, vocoder, melspec_predict, transcript, log_type="train",
+def log_wandb_audio(batch, config, wandb_session, vocoder, melspec_predict, log_type="train",
                     ground_truth=True):
     reconstructed_wav = vocoder.inference(melspec_predict).cpu()
     wav = display.Audio(reconstructed_wav, rate=22050)
@@ -28,6 +28,3 @@ def log_wandb_audio(batch, config, wandb_session, vocoder, melspec_predict, tran
     if ground_truth:
         gt_wav = display.Audio(batch.waveform[0].cpu(), rate=22050)
         log_audio(wandb_session, gt_wav, tmp_path, log_type + ".audio_original")
-    wandb_session.log({
-        log_type + ".transcript": wandb.Html(transcript),
-    })

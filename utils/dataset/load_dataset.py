@@ -7,7 +7,7 @@ from utils.config import TaskConfig
 # !tar -xjf LJSpeech-1.1.tar.bz2
 
 
-def load():
+def load_dataset():
     dataset_path = TaskConfig().work_dir_dataset
     file_path = os.path.join(TaskConfig().work_dir_dataset, TaskConfig().dataset_name)
 
@@ -22,3 +22,7 @@ def load():
     temp = tarfile.open(filename)
     temp.extractall(file_path)
     temp.close()
+
+
+if __name__ == "__main__":
+    load()
