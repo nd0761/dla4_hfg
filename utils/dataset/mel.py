@@ -153,6 +153,7 @@ class MelDataset(torch.utils.data.Dataset):
                 if audio.size(1) >= self.segment_size:
                     max_audio_start = audio.size(1) - self.segment_size
                     audio_start = random.randint(0, max_audio_start)
+                    audio_start = 0
                     audio = audio[:, audio_start:audio_start+self.segment_size]
                 else:
                     audio = torch.nn.functional.pad(audio, (0, self.segment_size - audio.size(1)), 'constant')

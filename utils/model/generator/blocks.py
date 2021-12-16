@@ -30,7 +30,7 @@ class ResBlock(nn.Module):
     def forward(self, x):
         for res_block in self.net:
             x_temp = res_block(x)
-            x = x + x_temp.clone()
+            x = x + x_temp
         return x
 
 
