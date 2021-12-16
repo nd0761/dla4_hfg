@@ -21,8 +21,8 @@ class ResBlock(nn.Module):
                     nn.LeakyReLU(TaskConfig().enc_leaky_relu),
                     nn.Conv1d(
                         hidden_channel, hidden_channel,
-                        kernel_size=kr, dilation=d,
-                        padding=get_padding(kr, d))
+                        kernel_size=kr[i], dilation=d,
+                        padding=get_padding(kr[i], d))
                 ]
                 self.net.append(nn.Sequential(*temp_net))
         self.net = nn.ModuleList(self.net)
@@ -43,7 +43,7 @@ class MRF(nn.Module):
 
         self.net = []
         for krs, Drs in zip(kr, Dr):
-            self.net.append(ResBlock(hidden_channel, krs, Drs))
+            self.net.append(ResBlock(hidden_channel, kr, Drs))
         self.net = nn.ModuleList(self.net)
 
     def forward(self, x):
@@ -54,4 +54,4 @@ class MRF(nn.Module):
                 x_res = x_temp
             else:
                 x_res = x_res + x_temp
-        return x_res // self.len_kr
+        return x_res / self.len_kr

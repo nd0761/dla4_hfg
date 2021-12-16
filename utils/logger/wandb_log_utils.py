@@ -32,18 +32,17 @@ def log_wandb_audio(config, wandb_session, vocoder, melspec_predict,
                     melspec_gt, wv_gt,
                     log_type="train",
                     ground_truth=True):
-    log_melspec(wandb_session, melspec_predict, log_type + ".predict_melspec")
+    # log_melspec(wandb_session, melspec_predict, log_type + ".predict_melspec")
     reconstructed_wav = vocoder(melspec_predict).detach().squeeze(1)
-    wav = display.Audio(reconstructed_wav, rate=TaskConfig().sampling_rate)
+    wav = display.Audio(reconstructed_wav.cpu(), rate=TaskConfig().sampling_rate)
     tmp_path = config.work_dir + "temp.wav"
     log_audio(wandb_session, wav, tmp_path, log_type + ".audio_predict")
     if ground_truth:
-        log_melspec(wandb_session, melspec_gt, log_type + ".gt_melspec")
+        # log_melspec(wandb_session, melspec_gt, log_type + ".gt_melspec")
         reconstructed_wav = vocoder(melspec_gt).detach().squeeze(1)
-        wav = display.Audio(reconstructed_wav, rate=TaskConfig().sampling_rate)
+        wav = display.Audio(reconstructed_wav.cpu(), rate=TaskConfig().sampling_rate)
         tmp_path = config.work_dir + "temp.wav"
         log_audio(wandb_session, wav, tmp_path, log_type + ".audio_original_mel")
 
         gt_wav = display.Audio(wv_gt.cpu(), rate=TaskConfig().sampling_rate)
         log_audio(wandb_session, gt_wav, tmp_path, log_type + ".audio_original_wav")
-

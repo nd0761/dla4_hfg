@@ -65,6 +65,7 @@ def main_worker():
 
     print("initialize scheduler")
     scheduler = ExponentialLR(opt_gen, gamma=config.lr_decay, last_epoch=-1)
+    scheduler = None
     wandb_session = None
     if config.wandb:
         wandb_session = initialize_wandb(config)
