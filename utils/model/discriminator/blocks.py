@@ -5,6 +5,8 @@ import torch.nn.functional as F
 from utils.config import TaskConfig
 from utils.model.generator.blocks import get_padding
 
+from torch.nn.utils import weight_norm, spectral_norm
+
 
 class MPDBlock(nn.Module):
 
@@ -23,7 +25,7 @@ class MPDBlock(nn.Module):
                         cur_channel, next_channel,
                         kernel_size=TaskConfig().mpd_hidden_k,
                         stride=stride,
-                        padding=get_padding(TaskConfig().mpd_hidden_k, 1)
+                        padding=get_padding(TaskConfig().mpd_hidden_k[0], 1)
                     ),
                     nn.LeakyReLU(TaskConfig().mpd_relu)
                 ]
@@ -32,14 +34,17 @@ class MPDBlock(nn.Module):
         self.net = nn.ModuleList(self.net)
 
         self.out = nn.Sequential(
-            nn.Conv2d(cur_channel, 1, kernel_size=3)
+            nn.Conv2d(cur_channel, 1, kernel_size=(3, 1))
         )
 
     def forward(self, x):
-        batch_size, seq_len, _ = x.shape
+        batch_size, seq_len, temp = x.shape
 
-        x = F.pad(x, (0, self.p - (x.shape[-1] % self.p)), "reflect")
-        x = x.view(batch_size, seq_len, -1, self.p)
+        if temp % self.p != 0:
+            x = F.pad(x, (0, self.p - (temp % self.p)), "reflect")
+            temp += self.p - (temp % self.p)
+
+        x = x.view(batch_size, seq_len, temp // self.p, self.p)
 
         features = []
 
@@ -53,6 +58,9 @@ class MPDBlock(nn.Module):
         return torch.flatten(x, 1, -1), features
 
 
+from torch.nn.utils import weight_norm, spectral_norm
+
+
 class MSDBlock(nn.Module):
 
     def __init__(self, use_sp=False):
@@ -60,6 +68,11 @@ class MSDBlock(nn.Module):
 
         self.use_sp = use_sp
         self.net = []
+
+        if use_sp:
+            norm = spectral_norm
+        else:
+            norm = weight_norm
 
         cur_channel = TaskConfig().msd_hidden_channels[0]
 
@@ -70,11 +83,11 @@ class MSDBlock(nn.Module):
                 TaskConfig().msd_g):
             self.net.append(nn.Sequential(
                 *[
-                    nn.Conv2d(
+                    nn.Conv1d(
                         cur_channel, next_channel,
                         kernel_size=kernel,
                         stride=stride,
-                        padding=kernel//2,
+                        padding=kernel // 2,
                         groups=group
                     ),
                     nn.LeakyReLU(TaskConfig().msd_relu)
@@ -84,7 +97,7 @@ class MSDBlock(nn.Module):
         self.net = nn.ModuleList(self.net)
 
         self.out = nn.Sequential(
-            nn.Conv2d(cur_channel, 1, kernel_size=3, padding=3)
+            nn.Conv1d(cur_channel, 1, kernel_size=3, padding=3)
         )
 
     def forward(self, x):
@@ -93,7 +106,6 @@ class MSDBlock(nn.Module):
         for layer in self.net:
             x = layer(x)
             features.append(x)
-
         x = self.out(x)
         features.append(x)
 

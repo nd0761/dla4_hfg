@@ -42,7 +42,7 @@ def train_epoch(
         len_batch += 1
 
         mels, waveform, _, _ = batch
-        waveform = waveform.to(config.device)
+        waveform = waveform.to(config.device).unsqueeze(1)
         mels = mels.to(config.device)
 
         predict = model_generator(mels)
@@ -82,11 +82,14 @@ def train_epoch(
 
         d_feat_loss = feat_loss(mpd_gen_features, mpd_real_features) + feat_loss(msd_gen_features, msd_real_features)
 
-        d_gen_loss = gen_loss(mpd_gen_res) + gen_loss(msd_gen_res)
+        d_gen_loss = gen_loss(mpd_gen_res)[0] + gen_loss(msd_gen_res)[0]
+
+        lg = loss_fn(mels, pred_mel)
+        #         print("\nLOSS\n", d_gen_loss.item(), d_feat_loss, lg)
 
         l_g = d_gen_loss + \
-            TaskConfig().feat_loss_coef * d_feat_loss + \
-            loss_fn(mels, pred_mel) * TaskConfig().gen_loss_coef
+              TaskConfig().feat_loss_coef * d_feat_loss + \
+              loss_fn(mels, pred_mel) * TaskConfig().gen_loss_coef
         l_g.backward()
         opt_gen.step()
 
@@ -137,7 +140,7 @@ def validation(
         len_batch += 1
 
         mels, waveform, filename, mel_loss = batch
-        waveform = waveform.to(config.device)
+        waveform = waveform.to(config.device).unsqueeze(1)
         mels = mels.to(config.device)
 
         predict = model_generator(mels)
@@ -152,11 +155,13 @@ def validation(
         l_d = mpd_sum_loss + msd_sum_loss
 
         d_feat_loss = feat_loss(mpd_gen_features, mpd_real_features) + feat_loss(msd_gen_features, msd_real_features)
-        d_gen_loss = gen_loss(mpd_gen_res) + gen_loss(msd_gen_res)
+        d_gen_loss = gen_loss(mpd_gen_res)[0] + gen_loss(msd_gen_res)[0]
+
+        lg = loss_fn(mels, pred_mel)
 
         l_g = d_gen_loss + \
-            TaskConfig().feat_loss_coef * d_feat_loss + \
-            loss_fn(mels, pred_mel) * TaskConfig().gen_loss_coef
+              TaskConfig().feat_loss_coef * d_feat_loss + \
+              lg * TaskConfig().gen_loss_coef
 
         val_losses_gen += l_g.item()
         val_losses_dis += l_d.item()
@@ -175,7 +180,8 @@ def validation(
     return val_losses_gen
 
 
-def save_best_model(config, current_loss_gen, current_loss_dis, new_loss_gen, new_loss_dis, model_gen, model_mpd, model_msd):
+def save_best_model(config, current_loss_gen, current_loss_dis, new_loss_gen, new_loss_dis, model_gen, model_mpd,
+                    model_msd):
     if current_loss_gen < 0 or new_loss_gen < current_loss_gen:
         print("UPDATING BEST MODEL GENERATOR , NEW BEST LOSS:", new_loss_gen)
         print("UPDATING MODEL DISCRIMINATOR , NEW LOSS:", new_loss_gen)

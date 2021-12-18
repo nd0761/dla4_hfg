@@ -11,6 +11,7 @@ class TaskConfig:
     results_location: str = "./results"
     dataset_full_name: str = os.path.join(work_dir_dataset, "LJSpeech-1.1")
     input_wavs_dir: str = os.path.join(dataset_full_name, "wavs")
+    metadata_path: str = os.path.join(dataset_full_name, "metadata.csv")
 
     train_share: float = 0.7
 
