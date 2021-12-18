@@ -23,9 +23,9 @@ class TaskConfig:
     no_val: bool = False  # set True if you don't want to run validation during training
 
     torch_seed: int = 42  # set torch seed for reproduction
-    num_epochs: int = 2300
-    batch_size: int = 4
-    batch_limit: int = 1  # set number of batches that will be used in training
+    num_epochs: int = 2500
+    batch_size: int = 8
+    batch_limit: int = -1  # set number of batches that will be used in training
 
     device: torch.device = torch.device(
         'cuda:0' if torch.cuda.is_available() else 'cpu')  # set device
@@ -39,7 +39,7 @@ class TaskConfig:
 
     save_models_every_epoch: int = 3  # model will be saved every save_models_every_epoch'th epoch
 
-    lr_decay: float = 0.7
+    lr_decay: float = 0.9
 
     betas: tuple = (0.8, 0.99)  # Adam betas
     learning_rate: float = 2e-4
@@ -64,16 +64,30 @@ class TaskConfig:
     # HiFiGun config
 
     def __init__(self):
+        # Generator
         self.enc_in_channels = 80
-        self.enc_out_channels = 1
-        self.dec_in_channels = 1
-        self.dec_out_channels = 1
 
-        self.enc_leaky_relu = 0.2
-        self.enc_kernel = 3
-        self.enc_dilation = (1, 3, 5)
+        self.enc_leaky_relu = 0.1
 
-        self.hu = 128  # V2
-        self.ku = [16, 16, 4, 4]  # V2
-        self.kr = [3, 7, 11]  # V2
-        self.Dr = [[[1, 1], [3, 1], [5, 1]], [[1, 1], [3, 1], [5, 1]], [[1, 1], [3, 1], [5, 1]]]  # V2
+        # self.hu = 128  # V2
+        self.hu = 512  # V1
+        self.ku = [16, 16, 4, 4]
+        self.kr = [3, 7, 11]
+        self.Dr = [[[1, 1], [3, 1], [5, 1]], [[1, 1], [3, 1], [5, 1]], [[1, 1], [3, 1], [5, 1]]]
+
+        #Discriminator
+        #MPD
+        self.mpd_p = [2, 3, 5, 7, 11]
+        self.mpd_hidden_k = 5
+        self.mpd_s = [3, 3, 3, 3, 1]
+        self.mpd_hidden_channels = [1, 32, 128, 512, 1024]
+        self.mpd_relu = 0.1
+
+        # MSD
+        self.msd_hidden_channels = [1, 128, 128, 256, 512, 1024, 1024]
+        self.msd_hidden_k = [15, 41, 41, 41, 41, 41, 5]
+        self.msd_s = [1, 2, 2, 4, 4, 1, 1]
+        self.msd_groups = [1, 4] + [16] * 4 + [1]
+        self.msd_pool_kernel = 4
+        self.msd_pool_stride = 2
+        self.msd_relu = 0.1
