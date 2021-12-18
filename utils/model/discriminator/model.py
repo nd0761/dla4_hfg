@@ -5,7 +5,6 @@ from utils.model.discriminator.blocks import MPDBlock, MSDBlock
 
 
 class MPDModel(nn.Module):
-
     def __init__(self):
         super(MPDModel, self).__init__()
 

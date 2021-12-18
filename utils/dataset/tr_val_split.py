@@ -2,6 +2,7 @@ import os
 import random
 from utils.config import TaskConfig
 
+
 def split_train_val_files():
     file_names = os.listdir(TaskConfig().dataset_full_name)
 

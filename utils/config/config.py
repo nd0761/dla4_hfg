@@ -63,6 +63,9 @@ class TaskConfig:
 
     # HiFiGun config
 
+    gen_loss_coef: int = 45
+    feat_loss_coef: int = 2
+
     def __init__(self):
         # Generator
         self.enc_in_channels = 80

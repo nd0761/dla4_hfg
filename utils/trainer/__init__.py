@@ -1,1 +1,1 @@
-from .train import train, validation
+from .train_discriminator import train, validation
