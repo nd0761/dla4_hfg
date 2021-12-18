@@ -87,7 +87,5 @@ class TaskConfig:
         self.msd_hidden_channels = [1, 128, 128, 256, 512, 1024, 1024]
         self.msd_hidden_k = [15, 41, 41, 41, 41, 41, 5]
         self.msd_s = [1, 2, 2, 4, 4, 1, 1]
-        self.msd_groups = [1, 4] + [16] * 4 + [1]
-        self.msd_pool_kernel = 4
-        self.msd_pool_stride = 2
+        self.msd_g = [1, 4, 16, 16, 16, 16, 1]
         self.msd_relu = 0.1

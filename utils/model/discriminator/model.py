@@ -41,9 +41,7 @@ class MSDModel(nn.Module):
         for sp in [True, False, False]:
             temp = []
             if not sp:
-                temp.append(nn.AvgPool1d(TaskConfig().msd_pool_kernel,
-                                         TaskConfig().msd_pool_stride,
-                                         padding=TaskConfig().msd_pool_kernel//2))
+                temp.append(nn.AvgPool1d(4, 2, padding=2))
             temp.append(MSDBlock(sp))
             self.net.append(nn.Sequential(*temp))
         self.net = nn.ModuleList(self.net)

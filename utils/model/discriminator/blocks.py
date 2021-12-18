@@ -63,17 +63,19 @@ class MSDBlock(nn.Module):
 
         cur_channel = TaskConfig().msd_hidden_channels[0]
 
-        for next_channel, stride, kernel in zip(
+        for next_channel, stride, kernel, group in zip(
                 TaskConfig().msd_hidden_channels[1:] + [1024],
                 TaskConfig().msd_s,
-                TaskConfig().msd_hidden_k):
+                TaskConfig().msd_hidden_k,
+                TaskConfig().msd_g):
             self.net.append(nn.Sequential(
                 *[
                     nn.Conv2d(
                         cur_channel, next_channel,
                         kernel_size=kernel,
                         stride=stride,
-                        padding=get_padding(kernel, 1)
+                        padding=kernel//2,
+                        groups=group
                     ),
                     nn.LeakyReLU(TaskConfig().msd_relu)
                 ]
