@@ -22,7 +22,3 @@ def split_train_val_files():
             f.write(str(train_data))
         with open(TaskConfig().input_validation_file, "w") as f:
             f.write(str(val_data))
-
-
-if __name__ == "__main__":
-    split_train_val_files()
