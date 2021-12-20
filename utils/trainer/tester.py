@@ -11,11 +11,11 @@ def test(
 ):
     model_generator.eval()
     res = []
-    for (gt_wav, t_mel) in tests:
+    for i, (gt_wav, t_mel) in enumerate(tests):
         pred = model_generator(t_mel)
         if wandb_session is not None:
             log_wandb_audio(config, wandb_session, model_generator,
-                            t_mel, t_mel, gt_wav, log_type="test")
+                            t_mel, t_mel, gt_wav, log_type="test" + str(i))
         else:
             res.append(pred)
     if not config.wandb:
