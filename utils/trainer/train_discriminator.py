@@ -5,6 +5,8 @@ from utils.config import TaskConfig
 from random import randint
 import os
 
+from .tester import test
+
 if TaskConfig().wandb:
     from utils.logger.wandb_log_utils import log_wandb_audio
 import torch
@@ -221,6 +223,11 @@ def train(
 
     gen_loss_fun = nn.L1Loss()
 
+    test_f = []
+    for file_name in os.listdir(TaskConfig().work_dir_test_dataset):
+        file_path = os.path.join(TaskConfig().work_dir_test_dataset, file_name)
+        test_f.append(torch.load(file_path, map_location=TaskConfig().device))
+
     for n in tqdm(range(config.num_epochs), desc="TRAINING PROCESS", total=config.num_epochs):
         gen_loss_t, dis_loss_t = train_epoch(
             featurizer,
@@ -260,6 +267,9 @@ def train(
                 gen_loss_fun,
                 config, wandb_session
             )
+
+        if config.wandb:
+            test(model_generator, test_f, config, wandb_session)
         if config.wandb:
             wandb_session.log({"epoch": n})
         print('\n------\nEND OF EPOCH', n, "\n------\n")

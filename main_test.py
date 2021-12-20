@@ -21,11 +21,15 @@ def main_worker():
         map_location=TaskConfig().device))
     model_gen.eval()
 
-    for file_name in os.listdir(TaskConfig().work_dir_test_dataset):
-        file_path = os.path.join(TaskConfig().work_dir_test_dataset, file_name)
-        wave = torch.load(file_path, map_location=TaskConfig().device)
+    file_names = os.listdir(TaskConfig().work_dir_test_dataset)
 
-        save_audio(model_gen(wave), os.path.join(TaskConfig().results_location, file_name))
+    test_f = []
+    for file_name in file_names:
+        file_path = os.path.join(TaskConfig().work_dir_test_dataset, file_name)
+        test_f.append(torch.load(file_path, map_location=TaskConfig().device))
+
+    for t_mel, file_name in zip(test_f, file_names):
+        save_audio(model_gen(t_mel), os.path.join(TaskConfig().results_location, file_name))
 
 
 if __name__ == "__main__":
