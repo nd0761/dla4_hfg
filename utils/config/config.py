@@ -15,8 +15,8 @@ class TaskConfig:
 
     train_share: float = 0.7
 
-    input_training_file: str = os.path.join(work_dir, "utils", "dataset", "overfit_batch.txt")
-    input_validation_file: str = os.path.join(work_dir, "utils", "dataset", "overfit_batch.txt")
+    input_training_file: str = os.path.join(work_dir, "utils", "dataset", "train_data.txt")
+    input_validation_file: str = os.path.join(work_dir, "utils", "dataset", "val_data.txt")
 
     dataset_url: str = "https://data.keithito.com/data/speech/LJSpeech-1.1.tar.bz2"
 
@@ -33,14 +33,14 @@ class TaskConfig:
 
     wandb: bool = True  # set False if you don't want to send logs to wandb
     wandb_api: str = ""  # wandb api
-    wandb_project: str = "dla4_hfg"  # wandb project name
+    wandb_project: str = "dla4_hfg-dis"  # wandb project name
     log_result_every_iteration: int = 5  # set -1 if you don't want to log any results
     log_loss_every_iteration: int = 5  # set -1 if you don't want to log any loss information
     log_audio: bool = True
 
     save_models_every_epoch: int = 3  # model will be saved every save_models_every_epoch'th epoch
 
-    lr_decay: float = 0.9
+    lr_decay: float = 0.99
 
     betas: tuple = (0.8, 0.99)  # Adam betas
     learning_rate: float = 2e-4
@@ -82,8 +82,8 @@ class TaskConfig:
         #Discriminator
         #MPD
         self.mpd_p = [2, 3, 5, 7, 11]
-        self.mpd_hidden_k = 5
-        self.mpd_s = [3, 3, 3, 3, 1]
+        self.mpd_hidden_k = (5, 1)
+        self.mpd_s = [(3, 1), (3, 1), (3, 1), (3, 1), 1]
         self.mpd_hidden_channels = [1, 32, 128, 512, 1024]
         self.mpd_relu = 0.1
 

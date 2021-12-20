@@ -24,13 +24,14 @@ def train_epoch(
         model_generator,
         model_mpd, model_msd,
         opt_gen, opt_dis,
-        loader, scheduler,
+        loader, scheduler_gen,
+        scheduler_dis,
         loss_fn,
         config=TaskConfig(), wandb_session=None
 ):
     model_generator.train()
-    for param in model_generator.parameters():
-        param.requires_grad = True
+    model_mpd.train()
+    model_msd.train()
 
     losses_gen = 0.
     losses_dis = 0.
@@ -48,13 +49,13 @@ def train_epoch(
         predict = model_generator(mels)
         pred_mel = mel_spectrogram(predict.squeeze(1))
 
-        for param in model_generator.parameters():
-            param.requires_grad = False
+        #         for param in model_generator.parameters():
+        #             param.requires_grad = False
 
-        for param in model_msd.parameters():
-            param.requires_grad = True
-        for param in model_mpd.parameters():
-            param.requires_grad = True
+        #         for param in model_msd.parameters():
+        #             param.requires_grad = True
+        #         for param in model_mpd.parameters():
+        #             param.requires_grad = True
 
         opt_dis.zero_grad()
         mpd_real_res, mpd_gen_res, _, _ = model_mpd(waveform, predict.detach())
@@ -67,13 +68,13 @@ def train_epoch(
         l_d.backward()
         opt_dis.step()
 
-        for param in model_generator.parameters():
-            param.requires_grad = True
+        #         for param in model_generator.parameters():
+        #             param.requires_grad = True
 
-        for param in model_msd.parameters():
-            param.requires_grad = False
-        for param in model_mpd.parameters():
-            param.requires_grad = False
+        #         for param in model_msd.parameters():
+        #             param.requires_grad = False
+        #         for param in model_mpd.parameters():
+        #             param.requires_grad = False
 
         opt_gen.zero_grad()
 
@@ -89,24 +90,32 @@ def train_epoch(
 
         l_g = d_gen_loss + \
               TaskConfig().feat_loss_coef * d_feat_loss + \
-              loss_fn(mels, pred_mel) * TaskConfig().gen_loss_coef
+              lg * TaskConfig().gen_loss_coef
         l_g.backward()
         opt_gen.step()
 
         losses_gen += l_g.detach().item()
         losses_dis += l_d.detach().item()
 
-        if scheduler is not None:
-            scheduler.step()
+        if scheduler_dis is not None:
+            scheduler_dis.step()
+        if scheduler_gen is not None:
+            scheduler_gen.step()
         if config.wandb and i % config.log_loss_every_iteration == 0 and config.wandb:
-            if scheduler is not None:
-                a = scheduler.get_last_lr()[0]
+            if scheduler_gen is not None:
+                #                 a = scheduler.get_last_lr()[0]
                 wandb_session.log({
-                    "train.lr": scheduler.get_last_lr()[0]
+                    "train.lr_gen": scheduler_gen.get_last_lr()[0],
+                    "train.lr_dis": scheduler_dis.get_last_lr()[0]
                 })
             wandb_session.log({
                 "train.loss_gen": l_g.detach().cpu().numpy(),
-                "train.loss_dis": l_d.detach().cpu().numpy()
+                "train.loss_gen_mel": lg.detach().cpu().numpy(),
+                "train.loss_gen_gen": d_gen_loss.detach().cpu().numpy(),
+                "train.loss_gen_feat": d_feat_loss.detach().cpu().numpy(),
+                "train.loss_dis": l_d.detach().cpu().numpy(),
+                "train.loss_dis_mpd": mpd_sum_loss.detach().cpu().numpy(),
+                "train.loss_dis_msd": msd_sum_loss.detach().cpu().numpy()
             })
         if config.wandb and i % config.log_result_every_iteration == 0:
             model_generator.eval()
@@ -149,7 +158,7 @@ def validation(
         mpd_real_res, mpd_gen_res, mpd_real_features, mpd_gen_features = model_mpd(waveform, predict)
         mpd_sum_loss, _, _ = dis_loss(mpd_gen_res, mpd_real_res)
 
-        msd_real_res, msd_gen_res, msd_real_features, msd_gen_features = model_msd(waveform, predict.detach())
+        msd_real_res, msd_gen_res, msd_real_features, msd_gen_features = model_msd(waveform, predict)
         msd_sum_loss, _, _ = dis_loss(msd_gen_res, msd_real_res)
 
         l_d = mpd_sum_loss + msd_sum_loss
@@ -169,7 +178,12 @@ def validation(
         if config.wandb and i % config.log_loss_every_iteration == 0 and config.wandb:
             wandb_session.log({
                 "val.loss_gen": l_g.detach().cpu().numpy(),
-                "val.loss_dis": l_d.detach().cpu().numpy()
+                "val.loss_gen_mel": lg.detach().cpu().numpy(),
+                "val.loss_gen_gen": d_gen_loss.detach().cpu().numpy(),
+                "val.loss_gen_feat": d_feat_loss.detach().cpu().numpy(),
+                "val.loss_dis": l_d.detach().cpu().numpy(),
+                "val.loss_dis_mpd": mpd_sum_loss.detach().cpu().numpy(),
+                "val.loss_dis_msd": msd_sum_loss.detach().cpu().numpy()
             })
         if config.wandb and i % config.log_result_every_iteration == 0:
             model_generator.eval()
@@ -200,7 +214,8 @@ def train(
         model_mpd, model_msd,
         opt_gen, opt_dis,
         train_loader, val_loader,
-        scheduler=None,
+        scheduler_gen=None,
+        scheduler_dis=None,
         save_model=False, model_path=None,
         config=TaskConfig(), wandb_session=None
 ):
@@ -214,7 +229,8 @@ def train(
             model_generator,
             model_mpd, model_msd,
             opt_gen, opt_dis,
-            train_loader, scheduler,
+            train_loader, scheduler_gen,
+            scheduler_dis,
             gen_loss_fun,
             config, wandb_session)
 

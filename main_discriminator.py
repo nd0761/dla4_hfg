@@ -67,18 +67,17 @@ def main_worker():
     opt_gen = AdamW(
         model_generator.parameters(),
         lr=config.learning_rate,
-        weight_decay=config.weight_decay,
         betas=TaskConfig().betas, eps=TaskConfig().eps
     )
     opt_dis = AdamW(
         itertools.chain(model_mpd.parameters(), model_msd.parameters()),
         lr=config.learning_rate,
-        weight_decay=config.weight_decay,
         betas=TaskConfig().betas, eps=TaskConfig().eps
     )
 
     print("initialize scheduler")
-    scheduler = ExponentialLR(opt_gen, gamma=config.lr_decay, last_epoch=-1)
+    scheduler_gen = ExponentialLR(opt_gen, gamma=config.lr_decay, last_epoch=-1)
+    scheduler_dis = ExponentialLR(opt_dis, gamma=config.lr_decay, last_epoch=-1)
     # scheduler = None
     wandb_session = None
     if config.wandb:
@@ -91,7 +90,8 @@ def main_worker():
         model_mpd, model_msd,
         opt_gen, opt_dis,
         train_loader, val_loader,
-        scheduler=scheduler,
+        scheduler_gen=scheduler_gen,
+        scheduler_dis=scheduler_dis,
         save_model=False,
         config=config, wandb_session=wandb_session
     )
