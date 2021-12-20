@@ -16,6 +16,8 @@ import torch.nn.functional as F
 from utils.loss import dis_loss, feat_loss, gen_loss
 from tqdm import tqdm
 
+import librosa
+
 
 def train_epoch(
         featurizer,
@@ -225,8 +227,14 @@ def train(
 
     test_f = []
     for file_name in os.listdir(TaskConfig().work_dir_test_dataset):
+        if file_name[-1] != "v":
+            continue
         file_path = os.path.join(TaskConfig().work_dir_test_dataset, file_name)
-        test_f.append(torch.load(file_path, map_location=TaskConfig().device))
+
+        wav, _ = librosa.load(file_path, sr=TaskConfig().sampling_rate)
+        wav = torch.Tensor(wav).unsqueeze(0).to(TaskConfig().device)
+        mels = featurizer(wav)
+        test_f.append((wav, featurizer(wav).to(TaskConfig().device)))
 
     for n in tqdm(range(config.num_epochs), desc="TRAINING PROCESS", total=config.num_epochs):
         gen_loss_t, dis_loss_t = train_epoch(

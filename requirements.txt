@@ -11,3 +11,5 @@ typing
 wandb
 regex
 wget
+ffmpeg
+sox
