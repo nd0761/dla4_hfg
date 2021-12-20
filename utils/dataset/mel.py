@@ -28,7 +28,7 @@ def get_dataset_filelist():
     return training_files, validation_files
 
 
-def get_dataloader(dataset=LJSpeechDataset, path=TaskConfig().dataset_full_name,
+def get_dataloader(dataset=LJSpeechDataset, path=TaskConfig().work_dir_dataset,
                    batch_size=TaskConfig().batch_size, collate_fn=LJSpeechCollator,
                    limit=TaskConfig().batch_limit):
     ds = dataset(path)
