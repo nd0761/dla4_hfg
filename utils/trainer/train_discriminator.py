@@ -4,23 +4,27 @@ from utils.config import TaskConfig
 from utils.loss import gen_loss, feat_loss
 
 from torch.nn.modules.loss import MSELoss, L1Loss
+
+from random import randint
 import os
 
 if TaskConfig().wandb:
     from utils.logger.wandb_log_utils import log_wandb_audio
 
-from utils.dataset import MelDataset, load_wav, dynamic_range_compression, dynamic_range_decompression, \
-    dynamic_range_compression_torch, dynamic_range_decompression_torch, spectral_normalize_torch, \
-    spectral_de_normalize_torch, mel_spectrogram, get_dataset_filelist
+# from utils.dataset import MelDataset, load_wav, dynamic_range_compression, dynamic_range_decompression, \
+#     dynamic_range_compression_torch, dynamic_range_decompression_torch, spectral_normalize_torch, \
+#     spectral_de_normalize_torch, mel_spectrogram, get_dataset_filelist
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from utils.dataset.mel_dataset import MelSpec
 from utils.loss import dis_loss, feat_loss, gen_loss
 from tqdm import tqdm
 
 
 def train_epoch(
+        featurizer,
         model_generator,
         model_mpd, model_msd,
         opt_gen, opt_dis,
@@ -41,21 +45,24 @@ def train_epoch(
         if config.batch_limit != -1 and i >= config.batch_limit:
             break
         len_batch += 1
+        waveform = batch.waveform
 
-        mels, waveform, _, _ = batch
-        waveform = waveform.to(config.device).unsqueeze(1)
-        mels = mels.to(config.device)
+        if waveform.shape[1] > TaskConfig().segment_size:
+            max_audio_start = waveform.shape[1] - TaskConfig().segment_size
+            audio_start = randint(0, max_audio_start)
+            waveform = waveform[:, audio_start:audio_start + config.segment_size]
+        else:
+            waveform = torch.nn.functional.pad(waveform, (0, TaskConfig().segment_size - waveform.size(1)), 'constant')
+
+        # print(waveform.shape)
+
+        mels = featurizer(waveform)
+
+        waveform = waveform.to(TaskConfig().device).unsqueeze(1)
+        mels = mels.to(TaskConfig().device)
 
         predict = model_generator(mels)
-        pred_mel = mel_spectrogram(predict.squeeze(1))
-
-        #         for param in model_generator.parameters():
-        #             param.requires_grad = False
-
-        #         for param in model_msd.parameters():
-        #             param.requires_grad = True
-        #         for param in model_mpd.parameters():
-        #             param.requires_grad = True
+        pred_mel = featurizer(predict.squeeze(1))
 
         opt_dis.zero_grad()
         mpd_real_res, mpd_gen_res, _, _ = model_mpd(waveform, predict.detach())
@@ -128,6 +135,7 @@ def train_epoch(
 
 @torch.no_grad()
 def validation(
+        featurizer,
         model_generator,
         model_mpd, model_msd,
         loader,
@@ -148,12 +156,24 @@ def validation(
             break
         len_batch += 1
 
-        mels, waveform, filename, mel_loss = batch
-        waveform = waveform.to(config.device).unsqueeze(1)
-        mels = mels.to(config.device)
+        waveform = batch.waveform
+
+        if waveform.shape[1] > TaskConfig().segment_size:
+            max_audio_start = waveform.shape[1] - TaskConfig().segment_size
+            audio_start = randint(0, max_audio_start)
+            waveform = waveform[:, audio_start:audio_start + config.segment_size]
+        else:
+            waveform = torch.nn.functional.pad(waveform, (0, TaskConfig().segment_size - waveform.size(1)), 'constant')
+
+        # print(waveform.shape)
+
+        mels = featurizer(waveform)
+
+        waveform = waveform.to(TaskConfig().device).unsqueeze(1)
+        mels = mels.to(TaskConfig().device)
 
         predict = model_generator(mels)
-        pred_mel = mel_spectrogram(predict.squeeze(1))
+        pred_mel = featurizer(predict.squeeze(1))
 
         mpd_real_res, mpd_gen_res, mpd_real_features, mpd_gen_features = model_mpd(waveform, predict)
         mpd_sum_loss, _, _ = dis_loss(mpd_gen_res, mpd_real_res)
@@ -214,6 +234,7 @@ def train(
         model_mpd, model_msd,
         opt_gen, opt_dis,
         train_loader, val_loader,
+        featurizer=None,
         scheduler_gen=None,
         scheduler_dis=None,
         save_model=False, model_path=None,
@@ -226,6 +247,7 @@ def train(
 
     for n in tqdm(range(config.num_epochs), desc="TRAINING PROCESS", total=config.num_epochs):
         gen_loss, dis_loss = train_epoch(
+            featurizer,
             model_generator,
             model_mpd, model_msd,
             opt_gen, opt_dis,
@@ -255,6 +277,7 @@ def train(
 
         if not config.no_val:
             validation(
+                featurizer,
                 model_generator,
                 model_mpd, model_msd,
                 val_loader,

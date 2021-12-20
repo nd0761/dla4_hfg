@@ -13,6 +13,8 @@ class TaskConfig:
     input_wavs_dir: str = os.path.join(dataset_full_name, "wavs")
     metadata_path: str = os.path.join(dataset_full_name, "metadata.csv")
 
+    aligner: str = "fsa"
+
     train_share: float = 0.7
 
     input_training_file: str = os.path.join(work_dir, "utils", "dataset", "train_data.txt")  # path to train metadata
@@ -21,7 +23,7 @@ class TaskConfig:
     dataset_url: str = "https://data.keithito.com/data/speech/LJSpeech-1.1.tar.bz2"
 
     use_scheduler: bool = True
-    no_val: bool = False  # set True if you don't want to run validation during training
+    no_val: bool = True  # set True if you don't want to run validation during training
 
     torch_seed: int = 42  # set torch seed for reproduction
     num_epochs: int = 2500
@@ -53,8 +55,8 @@ class TaskConfig:
     segment_size: int = 8192
     n_fft: int = 1024
     num_mels: int = 80
-    hop_size: int = 256
-    win_size: int = 1024
+    hop_length: int = 256
+    win_length: int = 1024
     fmin: int = 0
     fmax: int = 8000
     fmax_loss: int = None

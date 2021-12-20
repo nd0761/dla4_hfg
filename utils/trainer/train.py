@@ -5,19 +5,18 @@ from utils.loss import gen_loss, feat_loss
 
 from torch.nn.modules.loss import MSELoss, L1Loss
 import os
+from random import randint
 
 if TaskConfig().wandb:
     from utils.logger.wandb_log_utils import log_wandb_audio
 
-from utils.dataset import MelDataset, load_wav, dynamic_range_compression, dynamic_range_decompression, \
-    dynamic_range_compression_torch, dynamic_range_decompression_torch, spectral_normalize_torch, \
-    spectral_de_normalize_torch, mel_spectrogram, get_dataset_filelist
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 
 def train_epoch(
+        featurizer,
         model_generator,
         opt_gen,
         loader, scheduler,
@@ -36,12 +35,24 @@ def train_epoch(
             break
         len_batch += 1
 
-        mels, waveform, _, _ = batch
-        waveform = waveform.to(config.device)
-        mels = mels.to(config.device)
+        waveform = batch.waveform
+
+        if waveform.shape[1] > TaskConfig().segment_size:
+            max_audio_start = waveform.shape[1] - TaskConfig().segment_size
+            audio_start = randint(0, max_audio_start)
+            waveform = waveform[:, audio_start:audio_start + config.segment_size]
+        else:
+            waveform = torch.nn.functional.pad(waveform, (0, TaskConfig().segment_size - waveform.size(1)), 'constant')
+
+        # print(waveform.shape)
+
+        mels = featurizer(waveform)
+
+        waveform = waveform.to(TaskConfig().device).unsqueeze(1)
+        mels = mels.to(TaskConfig().device)
 
         predict = model_generator(mels)
-        pred_mel = mel_spectrogram(predict.squeeze(1))
+        pred_mel = featurizer(predict.squeeze(1))
 
         opt_gen.zero_grad()
 
@@ -73,6 +84,7 @@ def train_epoch(
 
 @torch.no_grad()
 def validation(
+        featurizer,
         model_generator,
         loader,
         loss_fn,
@@ -89,12 +101,24 @@ def validation(
             break
         len_batch += 1
 
-        mels, waveform, filename, mel_loss = batch
-        waveform = waveform.to(config.device)
-        mels = mels.to(config.device)
+        waveform = batch.waveform
+
+        if waveform.shape[1] > TaskConfig().segment_size:
+            max_audio_start = waveform.shape[1] - TaskConfig().segment_size
+            audio_start = randint(0, max_audio_start)
+            waveform = waveform[:, audio_start:audio_start + config.segment_size]
+        else:
+            waveform = torch.nn.functional.pad(waveform, (0, TaskConfig().segment_size - waveform.size(1)), 'constant')
+
+        # print(waveform.shape)
+
+        mels = featurizer(waveform)
+
+        waveform = waveform.to(TaskConfig().device).unsqueeze(1)
+        mels = mels.to(TaskConfig().device)
 
         predict = model_generator(mels)
-        pred_mel = mel_spectrogram(predict.squeeze(1))
+        pred_mel = featurizer(predict.squeeze(1))
 
         l_g = loss_fn(mels, pred_mel) * 45
         val_losses_gen += l_g.item()
@@ -111,55 +135,6 @@ def validation(
 
     return val_losses_gen
 
-
-# TODO: update test_results_log for discriminator
-# @torch.no_grad()
-# def test_results_log(
-#         model_generator,
-#         loader,
-#         image_location=TaskConfig().image_location,
-#         config=TaskConfig(),
-#         wandb_session=None,
-#         mode="test", save_images=True,
-#         save_as_three=TaskConfig().save_as_three
-# ):
-#     model_generator.eval()
-#
-#     mean = (-0.5 / 0.5, -0.5 / 0.5, -0.5 / 0.5)
-#     std = (1.0 / 0.5, 1.0 / 0.5, 1.0 / 0.5)
-#     unnormalize = transforms.Normalize(mean, std)
-#
-#     # for param in model_generator.parameters():
-#     #     param.requires_grad = False
-#
-#     # if config.use_tqdm:
-#     #     for i, (input_img, ground_truth_img) in tqdm(enumerate(loader), desc="Test"):
-#     ind = 0
-#     for i, (input_img, ground_truth_img) in enumerate(loader):
-#         input_img = input_img.to(config.device)
-#         ground_truth_img = ground_truth_img.to(config.device)
-#
-#         predicted_img = model_generator(input_img)
-#
-#         # else save to local directory
-#         directories = [os.path.join(image_location, "tricolor")]
-#
-#         for directory in directories:
-#             if not os.path.exists(directory):
-#                 os.makedirs(directory)
-#             for input_img1, ground_truth_img1, predicted_img1 in zip(input_img, ground_truth_img, predicted_img):
-#                 tricolor = torch.cat((unnormalize(predicted_img1), unnormalize(input_img1)), 2)
-#                 if config.dataset_name == "restore":
-#                     tricolor = torch.cat((unnormalize(input_img1), unnormalize(predicted_img1)), 2)
-#                 if save_as_three:
-#                     tricolor = torch.cat((unnormalize(input_img1),
-#                                           unnormalize(ground_truth_img1),
-#                                           unnormalize(predicted_img1)),
-#                                          2)
-#                 save_image(tricolor, os.path.join(directory, str(ind + 1) + ".png"))
-#         ind += 1
-
-
 def save_best_model(config, current_loss_gen, new_loss_gen, model_gen):
     if current_loss_gen < 0 or new_loss_gen < current_loss_gen:
         print("UPDATING BEST MODEL GENERATOR , NEW BEST LOSS:", new_loss_gen)
@@ -173,6 +148,7 @@ def train(
         model_generator,
         opt_gen,
         train_loader, val_loader,
+        featurizer=None,
         scheduler=None,
         save_model=False, model_path=None,
         config=TaskConfig(), wandb_session=None
@@ -184,6 +160,7 @@ def train(
     # criterion = L1Loss()
     for n in range(config.num_epochs):
         gen_loss = train_epoch(
+            featurizer,
             model_generator,
             opt_gen,
             train_loader, scheduler,
@@ -200,6 +177,7 @@ def train(
 
         if not config.no_val:
             validation(
+                featurizer,
                 model_generator,
                 val_loader,
                 gen_loss_fun,
