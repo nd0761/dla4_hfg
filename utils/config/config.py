@@ -5,7 +5,7 @@ import os
 
 @dataclasses.dataclass
 class TaskConfig:
-    work_dir: str = "./dla4_hfg"  # pix2pix2 directory
+    work_dir: str = "./dla4_hfg"  # directory
     work_dir_dataset: str = "./datasets/LJSpeech"  # dataset directory
     model_path: str = "./models"  # path to save future models
     results_location: str = "./results"
@@ -15,8 +15,8 @@ class TaskConfig:
 
     train_share: float = 0.7
 
-    input_training_file: str = os.path.join(work_dir, "utils", "dataset", "train_data.txt")
-    input_validation_file: str = os.path.join(work_dir, "utils", "dataset", "val_data.txt")
+    input_training_file: str = os.path.join(work_dir, "utils", "dataset", "train_data.txt")  # path to train metadata
+    input_validation_file: str = os.path.join(work_dir, "utils", "dataset", "val_data.txt")  # path to validation metadata
 
     dataset_url: str = "https://data.keithito.com/data/speech/LJSpeech-1.1.tar.bz2"
 
