@@ -25,7 +25,7 @@ class TaskConfig:
     no_val: bool = True  # set True if you don't want to run validation during training
 
     torch_seed: int = 42  # set torch seed for reproduction
-    num_epochs: int = 2500
+    num_epochs: int = 500
     batch_size: int = 8
     batch_limit: int = -1  # set number of batches that will be used in training
 
