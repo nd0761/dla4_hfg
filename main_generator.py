@@ -1,17 +1,11 @@
-import os
-
 import torch
 import torch.nn as nn
-from utils.config import TaskConfig, TransformerConfig
+from utils.config import TaskConfig
 
 from utils.trainer.train import train
 from utils.model.generator import Generator
 from utils.dataset.mel import get_dataloader
 
-from utils.vcoder import Vocoder
-
-
-from torch.utils.data import DataLoader
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import ExponentialLR
 
@@ -27,25 +21,11 @@ def main_worker():
     print(config.device)
     torch.manual_seed(config.torch_seed)
 
-    print("initialize filelist")
-    # training_filelist, validation_filelist = get_dataset_filelist()
-
-    print("initialize dataset")
-
-    # train_dataset = MelDataset(training_filelist)
-    #
-    # val_dataset = MelDataset(validation_filelist)
-
     print("initialize dataloader")
 
     train_loader = get_dataloader()
 
-    # val_loader = DataLoader(
-    #     val_dataset,
-    #     batch_size=config.batch_size
-    # )
     print("Train size:", len(train_loader) * TaskConfig().batch_size, len(train_loader))
-    # print("Val size:", len(val_dataset), len(val_loader))
 
     print("initialize model")
     model_generator = nn.DataParallel(Generator()).to(config.device)
@@ -61,8 +41,7 @@ def main_worker():
     )
 
     print("initialize scheduler")
-    scheduler = ExponentialLR(opt_gen, gamma=config.lr_decay, last_epoch=-1)
-    # scheduler = None
+    scheduler = None
     wandb_session = None
     if config.wandb:
         wandb_session = initialize_wandb(config)

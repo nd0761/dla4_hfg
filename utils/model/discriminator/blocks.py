@@ -5,8 +5,6 @@ import torch.nn.functional as F
 from utils.config import TaskConfig
 from utils.model.generator.blocks import get_padding
 
-from torch.nn.utils import weight_norm, spectral_norm
-
 
 class MPDBlock(nn.Module):
 

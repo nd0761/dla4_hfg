@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 from utils.config import TaskConfig
 from utils.model.discriminator.blocks import MPDBlock, MSDBlock
@@ -20,13 +19,9 @@ class MPDModel(nn.Module):
         real_features = []
         gen_features = []
 
-        #         print("START", x_real.shape, x_gen.shape)
-
         for layer in self.net:
-            #             print("------", x_real.shape, x_gen.shape)
             x_real_res, real_feat = layer(x_real)
             x_gen_res, gen_feat = layer(x_gen)
-            #             print(x_real.shape, x_gen.shape)
 
             real_res.append(x_real_res)
             gen_res.append(x_gen_res)

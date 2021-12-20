@@ -21,4 +21,3 @@ def load_dataset():
     temp = tarfile.open(filename)
     temp.extractall(dataset_path)
     temp.close()
-

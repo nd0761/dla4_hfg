@@ -1,6 +1,4 @@
 import torch
-from torch import nn
-from utils.loss.utils import get_loss_on_result
 
 
 def feat_loss(f_pred, f_target):

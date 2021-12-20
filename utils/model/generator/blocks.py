@@ -1,8 +1,6 @@
 import torch.nn as nn
 from utils.config import TaskConfig
 
-# source shw5
-
 
 def get_padding(kernel_size, dilation):
     return (kernel_size * dilation - dilation) // 2

@@ -1,22 +1,11 @@
-import math
-import os
-import random
 import torch
 import torch.nn as nn
 import torchaudio
 import torch.utils.data
 
 import librosa
-import numpy as np
-from librosa.util import normalize
-from scipy.io.wavfile import read
-from librosa.filters import mel as librosa_mel_fn
 
 from utils.config import TaskConfig
-
-from utils.dataset.load_dataset import load_dataset
-
-silence = -11.5129251
 
 
 class MelSpec(nn.Module):

@@ -1,24 +1,16 @@
 import os.path
 
 from utils.config import TaskConfig
-from utils.loss import gen_loss, feat_loss
-
-from torch.nn.modules.loss import MSELoss, L1Loss
 
 from random import randint
 import os
 
 if TaskConfig().wandb:
     from utils.logger.wandb_log_utils import log_wandb_audio
-
-# from utils.dataset import MelDataset, load_wav, dynamic_range_compression, dynamic_range_decompression, \
-#     dynamic_range_compression_torch, dynamic_range_decompression_torch, spectral_normalize_torch, \
-#     spectral_de_normalize_torch, mel_spectrogram, get_dataset_filelist
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from utils.dataset.mel_dataset import MelSpec
 from utils.loss import dis_loss, feat_loss, gen_loss
 from tqdm import tqdm
 
@@ -45,6 +37,7 @@ def train_epoch(
         if config.batch_limit != -1 and i >= config.batch_limit:
             break
         len_batch += 1
+        batch.to(TaskConfig().device)
         waveform = batch.waveform
 
         if waveform.shape[1] > TaskConfig().segment_size:
@@ -53,8 +46,6 @@ def train_epoch(
             waveform = waveform[:, audio_start:audio_start + config.segment_size]
         else:
             waveform = torch.nn.functional.pad(waveform, (0, TaskConfig().segment_size - waveform.size(1)), 'constant')
-
-        # print(waveform.shape)
 
         mels = featurizer(waveform)
 
@@ -75,14 +66,6 @@ def train_epoch(
         l_d.backward()
         opt_dis.step()
 
-        #         for param in model_generator.parameters():
-        #             param.requires_grad = True
-
-        #         for param in model_msd.parameters():
-        #             param.requires_grad = False
-        #         for param in model_mpd.parameters():
-        #             param.requires_grad = False
-
         opt_gen.zero_grad()
 
         _, mpd_gen_res, mpd_real_features, mpd_gen_features = model_mpd(waveform, predict)
@@ -93,11 +76,8 @@ def train_epoch(
         d_gen_loss = gen_loss(mpd_gen_res)[0] + gen_loss(msd_gen_res)[0]
 
         lg = loss_fn(mels, pred_mel)
-        #         print("\nLOSS\n", d_gen_loss.item(), d_feat_loss, lg)
 
-        l_g = d_gen_loss + \
-              TaskConfig().feat_loss_coef * d_feat_loss + \
-              lg * TaskConfig().gen_loss_coef
+        l_g = d_gen_loss + TaskConfig().feat_loss_coef * d_feat_loss + lg * TaskConfig().gen_loss_coef
         l_g.backward()
         opt_gen.step()
 
@@ -110,7 +90,6 @@ def train_epoch(
             scheduler_gen.step()
         if config.wandb and i % config.log_loss_every_iteration == 0 and config.wandb:
             if scheduler_gen is not None:
-                #                 a = scheduler.get_last_lr()[0]
                 wandb_session.log({
                     "train.lr_gen": scheduler_gen.get_last_lr()[0],
                     "train.lr_dis": scheduler_dis.get_last_lr()[0]
@@ -155,6 +134,7 @@ def validation(
         if config.batch_limit != -1 and i >= config.batch_limit:
             break
         len_batch += 1
+        batch.to(TaskConfig().device)
 
         waveform = batch.waveform
 
@@ -164,8 +144,6 @@ def validation(
             waveform = waveform[:, audio_start:audio_start + config.segment_size]
         else:
             waveform = torch.nn.functional.pad(waveform, (0, TaskConfig().segment_size - waveform.size(1)), 'constant')
-
-        # print(waveform.shape)
 
         mels = featurizer(waveform)
 
@@ -188,9 +166,7 @@ def validation(
 
         lg = loss_fn(mels, pred_mel)
 
-        l_g = d_gen_loss + \
-              TaskConfig().feat_loss_coef * d_feat_loss + \
-              lg * TaskConfig().gen_loss_coef
+        l_g = d_gen_loss + TaskConfig().feat_loss_coef * d_feat_loss + lg * TaskConfig().gen_loss_coef
 
         val_losses_gen += l_g.item()
         val_losses_dis += l_d.item()
@@ -246,7 +222,7 @@ def train(
     gen_loss_fun = nn.L1Loss()
 
     for n in tqdm(range(config.num_epochs), desc="TRAINING PROCESS", total=config.num_epochs):
-        gen_loss, dis_loss = train_epoch(
+        gen_loss_t, dis_loss_t = train_epoch(
             featurizer,
             model_generator,
             model_mpd, model_msd,
@@ -256,13 +232,13 @@ def train(
             gen_loss_fun,
             config, wandb_session)
 
-        print("GEN LOSS", gen_loss)
-        print("DIS LOSS", dis_loss)
+        print("GEN LOSS", gen_loss_t)
+        print("DIS LOSS", dis_loss_t)
 
         best_loss_gen, best_loss_dis = save_best_model(
             config,
             best_loss_gen, best_loss_dis,
-            gen_loss, dis_loss,
+            gen_loss_t, dis_loss_t,
             model_generator,
             model_mpd, model_msd
         )

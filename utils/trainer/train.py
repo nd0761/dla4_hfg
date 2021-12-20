@@ -1,9 +1,7 @@
 import os.path
 
 from utils.config import TaskConfig
-from utils.loss import gen_loss, feat_loss
 
-from torch.nn.modules.loss import MSELoss, L1Loss
 import os
 from random import randint
 
@@ -34,6 +32,7 @@ def train_epoch(
         if config.batch_limit != -1 and i >= config.batch_limit:
             break
         len_batch += 1
+        batch.to(TaskConfig().device)
 
         waveform = batch.waveform
 
@@ -43,8 +42,6 @@ def train_epoch(
             waveform = waveform[:, audio_start:audio_start + config.segment_size]
         else:
             waveform = torch.nn.functional.pad(waveform, (0, TaskConfig().segment_size - waveform.size(1)), 'constant')
-
-        # print(waveform.shape)
 
         mels = featurizer(waveform)
 
@@ -100,6 +97,7 @@ def validation(
         if config.batch_limit != -1 and i >= config.batch_limit:
             break
         len_batch += 1
+        batch.to(TaskConfig().device)
 
         waveform = batch.waveform
 
@@ -109,8 +107,6 @@ def validation(
             waveform = waveform[:, audio_start:audio_start + config.segment_size]
         else:
             waveform = torch.nn.functional.pad(waveform, (0, TaskConfig().segment_size - waveform.size(1)), 'constant')
-
-        # print(waveform.shape)
 
         mels = featurizer(waveform)
 
@@ -135,6 +131,7 @@ def validation(
 
     return val_losses_gen
 
+
 def save_best_model(config, current_loss_gen, new_loss_gen, model_gen):
     if current_loss_gen < 0 or new_loss_gen < current_loss_gen:
         print("UPDATING BEST MODEL GENERATOR , NEW BEST LOSS:", new_loss_gen)
@@ -157,7 +154,6 @@ def train(
 
     gen_loss_fun = nn.L1Loss()
 
-    # criterion = L1Loss()
     for n in range(config.num_epochs):
         gen_loss = train_epoch(
             featurizer,

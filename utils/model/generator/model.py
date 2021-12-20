@@ -4,7 +4,6 @@ from utils.config import TaskConfig
 from utils.model.generator.blocks import MRF, get_padding
 
 
-# source shw5
 class Generator(nn.Module):
 
     def __init__(self):
