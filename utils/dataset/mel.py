@@ -12,8 +12,6 @@ from utils.config import TaskConfig
 
 from utils.dataset.load_dataset import load_dataset
 
-from tr_val_split import split_train_val_files
-
 # source -  https://github.com/jik876/hifi-gan/blob/master/meldataset.py
 MAX_WAV_VALUE = 32768.0
 
@@ -84,8 +82,6 @@ def mel_spectrogram(y,
 
 
 def get_dataset_filelist():
-    load_dataset()
-    split_train_val_files()
     input_wavs_dir = os.path.join(TaskConfig().dataset_full_name, "wavs")
     with open(TaskConfig().input_training_file, 'r', encoding='utf-8') as fi:
         training_files = [os.path.join(input_wavs_dir, x.split('|')[0] + '.wav')
@@ -130,6 +126,8 @@ class MelDataset(torch.utils.data.Dataset):
         self.device = device
         self.fine_tuning = fine_tuning
         self.base_mels_path = base_mels_path
+
+        load_dataset()
 
     def __getitem__(self, index):
         filename = self.audio_files[index]
