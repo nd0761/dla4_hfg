@@ -41,7 +41,7 @@ class TaskConfig:
 
     save_models_every_epoch: int = 3  # model will be saved every save_models_every_epoch'th epoch
 
-    lr_decay: float = 0.99
+    lr_decay: float = 0.999
 
     betas: tuple = (0.8, 0.99)  # Adam betas
     learning_rate: float = 2e-4

@@ -87,11 +87,6 @@ def train_epoch(
 
         losses_gen += l_g.detach().item()
         losses_dis += l_d.detach().item()
-
-        if scheduler_dis is not None:
-            scheduler_dis.step()
-        if scheduler_gen is not None:
-            scheduler_gen.step()
         if config.wandb and i % config.log_loss_every_iteration == 0 and config.wandb:
             if scheduler_gen is not None:
                 wandb_session.log({
@@ -276,6 +271,11 @@ def train(
                 config, wandb_session
             )
 
+
+        if scheduler_dis is not None:
+            scheduler_dis.step()
+        if scheduler_gen is not None:
+            scheduler_gen.step()
         if config.wandb:
             test(model_generator, test_f, config, wandb_session)
         if config.wandb:
